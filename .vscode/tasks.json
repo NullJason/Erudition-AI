@@ -1,0 +1,103 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "native: configure (cmake)",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S", "${workspaceFolder}/native",
+        "-B", "${workspaceFolder}/native/build",
+        "-G", "Visual Studio 17 2022",
+        "-A", "x64"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "native: build (Release)",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build", "${workspaceFolder}/native/build",
+        "--config", "Release"
+      ],
+      "dependsOn": "native: configure (cmake)",
+      "problemMatcher": []
+    },
+    {
+      "label": "java: package (maven)",
+      "type": "shell",
+      "command": "${workspaceFolder}/mvnw.cmd",
+      "args": [
+        "-q",
+        "-DskipTests",
+        "package"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "java: copy runtime deps",
+      "type": "shell",
+      "command": "${workspaceFolder}/mvnw.cmd",
+      "args": [
+        "-q",
+        "-DskipTests",
+        "dependency:copy-dependencies",
+        "-DincludeScope=runtime",
+        "-DoutputDirectory=${workspaceFolder}/dist/staging"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "stage: copy artifacts",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "$ErrorActionPreference='Stop'; ",
+        "New-Item -ItemType Directory -Force -Path '${workspaceFolder}\\dist\\staging' | Out-Null; " ,
+        "$jar = Get-ChildItem -Path '${workspaceFolder}\\target' -Filter *.jar | Where-Object { $_.Name -notlike '*-sources.jar' -and $_.Name -notlike 'original-*.jar' } | Select-Object -First 1; " ,
+        "if (-not $jar) { throw 'Main JAR not found in target/'; } " ,
+        "Copy-Item -Force $jar.FullName '${workspaceFolder}\\dist\\staging\\app.jar'; " ,
+        "Copy-Item -Force '${workspaceFolder}\\native\\build\\Release\\gpu_memory_native.dll' '${workspaceFolder}\\dist\\staging\\gpu_memory_native.dll';"
+      ],
+      "dependsOn": [
+        "native: build (Release)",
+        "java: package (maven)",
+        "java: copy runtime deps"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "package: jpackage (exe)",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "\"jpackage --type exe --name EduTool --app-version 1.0.0 --input dist\\staging --main-jar app.jar --main-class EruditionApp.MainApp --dest dist --win-console\""
+      ],
+      "dependsOn": "stage: copy artifacts",
+      "problemMatcher": []
+    },
+    {
+      "label": "build: all",
+      "dependsOn": [
+        "package: jpackage (exe)"
+      ]
+    },
+    {
+      "label": "bootstrap: install deps",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\bootstrap.ps1"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+    "java.project.sourcePaths": [
+        "src/main/java/EruditionApp",
+        "EruditionApp",
+        "src/main/java/erudition_program"
+    ]
+}

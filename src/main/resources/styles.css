@@ -1,0 +1,43 @@
+.root {
+    -fx-base: #12151c;
+    -fx-background-color: #0f1117;
+    -fx-font-size: 13px;
+}
+
+.label {
+    -fx-text-fill: #e7eaf0;
+}
+
+.muted {
+    -fx-text-fill: #9aa4b2;
+}
+
+.text-area {
+    -fx-control-inner-background: #151a22;
+    -fx-text-fill: #e7eaf0;
+    -fx-highlight-fill: #3b82f6;
+    -fx-highlight-text-fill: white;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-background-insets: 0;
+    -fx-border-color: #2a3240;
+}
+
+.text-field, .combo-box {
+    -fx-control-inner-background: #151a22;
+    -fx-text-fill: #e7eaf0;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: #2a3240;
+}
+
+.button {
+    -fx-background-color: #2f6fed;
+    -fx-text-fill: white;
+    -fx-background-radius: 10;
+    -fx-padding: 8 16 8 16;
+}
+
+.button:hover {
+    -fx-background-color: #3c7bff;
+}

@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run EduTool (JavaFX + JNI)",
+      "type": "java",
+      "request": "launch",
+      "mainClass": "EruditionApp.MainApp",
+      "projectName": "edutool",
+
+      "cwd": "${workspaceFolder}",
+
+      "vmArgs": "-Dnative.dir=${workspaceFolder}/native/build/Release",
+
+      "classPaths": [
+        "${workspaceFolder}/target/classes",
+        "${workspaceFolder}/dist/staging/*"
+      ],
+
+      "preLaunchTask": "native: build (Release)"
+    },
+    {
+      "name": "Run EduTool (w. dev dependencies)",
+      "type": "java",
+      "request": "launch",
+      "mainClass": "EruditionApp.MainApp",
+      "projectName": "edutool",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "bootstrap: install deps",
+      "vmArgs": "-Dnative.dir=${workspaceFolder}/native/build/Release"
+    }
+  ]
+}
