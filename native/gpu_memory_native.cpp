@@ -11,7 +11,7 @@ static bool query_memory_info(IDXGIAdapter3* adapter3, DXGI_MEMORY_SEGMENT_GROUP
 }
 
 extern "C" JNIEXPORT jlongArray JNICALL
-Java_com_example_edutool_GpuMemoryNative_queryVideoMemoryNative(JNIEnv* env, jclass) {
+Java_erudition_program_GpuMemoryNative_queryVideoMemoryNative(JNIEnv* env, jclass) {
     jlong values[6] = { -1, -1, -1, -1, -1, -1 };
 
     HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);

@@ -1,5 +1,5 @@
 
-
+package erudition_program;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

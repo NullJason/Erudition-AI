@@ -1,3 +1,5 @@
+# powershell predecessor to devbuid.sh
+
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 

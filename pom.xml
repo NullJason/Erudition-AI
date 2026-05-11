@@ -9,8 +9,8 @@
     <name>Knowledge</name>
 
     <properties>
-        <maven.compiler.release>21</maven.compiler.release>
-        <javafx.version>26.0.1</javafx.version>
+        <maven.compiler.release>22</maven.compiler.release>
+        <javafx.version>25.0.3</javafx.version>
         <jackson.version>2.18.0</jackson.version>
     </properties>
 
@@ -27,15 +27,17 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- JavaFX -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-
+        <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <!-- version inherited from BOM -->
         </dependency>
     </dependencies>
 
@@ -55,37 +57,10 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>EruditionApp.MainApp</mainClass>
+                    <mainClass>erudition_program.MainApp</mainClass>
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>com.googlecode.cmake-maven-project</groupId>
-                <artifactId>cmake-maven-plugin</artifactId>
-                <version>3.29.3-b1</version>
-                <executions>
-                    <execution>
-                        <id>cmake-generate</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <sourcePath>${project.basedir}/src/main/cpp</sourcePath>
-                            <targetPath>${project.build.directory}/native</targetPath>
-                            <generator>Visual Studio 17 2022</generator>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>cmake-compile</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <projectDirectory>${project.build.directory}/native</projectDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 </project>

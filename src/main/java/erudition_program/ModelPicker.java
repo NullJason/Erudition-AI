@@ -1,5 +1,5 @@
 
-
+package erudition_program;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -21,7 +21,7 @@ public final class ModelPicker {
     public static ObservableList<String> supportedModels() {
         return FXCollections.unmodifiableObservableList(MODELS);
     }
-    public static String pickBestModel(){pickBestModel(0);}
+    public static String pickBestModel(){return pickBestModel(0);}
     public static String pickBestModel(float thres) {
         thres = (Float.isNaN(thres)) ? 0 : thres;
 

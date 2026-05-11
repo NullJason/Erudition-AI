@@ -1,6 +1,6 @@
 // deep java library for developing ai tools @https://djl.ai/
 
-
+package erudition_program;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
