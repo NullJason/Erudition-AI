@@ -1,4 +1,4 @@
-// deep java library for developing ai tools @https://djl.ai/
+// for future -- deep java library for developing ai tools @https://djl.ai/
 
 package erudition_program;
 import javafx.application.Application;

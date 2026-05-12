@@ -9,9 +9,9 @@
     <name>Knowledge</name>
 
     <properties>
-        <maven.compiler.release>22</maven.compiler.release>
-        <javafx.version>25.0.3</javafx.version>
-        <jackson.version>2.18.0</jackson.version>
+        <maven.compiler.release>26</maven.compiler.release>
+        <javafx.version>26.0.1</javafx.version>
+        <jackson.version>2.21.3</jackson.version>
     </properties>
 
     <dependencyManagement>
@@ -58,6 +58,10 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>erudition_program.MainApp</mainClass>
+                    <options>
+                        <option>--enable-native-access=javafx.graphics</option>
+                        <option>--enable-native-access=ALL-UNNAMED</option>
+                    </options>
                 </configuration>
             </plugin>
 

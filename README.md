@@ -4,6 +4,20 @@ An education tool designed to make you learn and make sure you remember what you
 
 Runs locally on your hardware and is completely free, the effectiveness of the generative AI is based upon your GPU capabilities and VRAM capacity.
 
+## How to use
+
+### Source Code
+
+1. Download Source, get project dependencies through build.sh:
+    powershell -ExecutionPolicy Bypass -File .\build.ps1
+2. cd into the source code directory
+3. ./mvnw.cmd javafx:run
++ you may also build the project installer executable and use that instead.
+
+### Releases
+
+1. Download latest release.
+2. click on the executable, that's it.
 
 ## Planned features
 

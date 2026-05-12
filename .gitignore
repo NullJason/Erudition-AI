@@ -282,3 +282,7 @@ Testing/
 *.ps1
 Test_CodeTextPrinter.sh
 
+*.env
+
+!scripts/set-jfx-env.ps1
+!build.ps1

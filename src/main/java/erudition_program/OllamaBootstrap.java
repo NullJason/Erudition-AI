@@ -3,7 +3,7 @@ package erudition_program;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 public final class OllamaBootstrap {
@@ -29,7 +29,7 @@ public final class OllamaBootstrap {
     private static boolean isOllamaRunning() {
         try {
             HttpURLConnection conn = (HttpURLConnection)
-                    new URL("http://127.0.0.1:11434/api/tags").openConnection();
+                    URI.create("http://127.0.0.1:11434/api/tags").toURL().openConnection();
             conn.setConnectTimeout(1500);
             conn.setReadTimeout(1500);
             conn.setRequestMethod("GET");
