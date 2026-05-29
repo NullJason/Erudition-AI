@@ -9,20 +9,5 @@
       "group": "build",
       "problemMatcher": []
     },
-    {
-      "label": "Set JavaFX env",
-      "type": "process",
-      "command": "powershell.exe",
-      "args": [
-          "-NoProfile",
-          "-ExecutionPolicy", "Bypass",
-          "-File", "${workspaceFolder}\\scripts\\set-jfx-env.ps1"
-      ],
-      "problemMatcher": [],
-      "presentation": {
-          "reveal": "silent",
-          "close": true
-      }
-    }
   ]
 }

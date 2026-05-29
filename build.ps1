@@ -10,7 +10,7 @@ param(
     [string]$Configuration = 'Release',
     [string]$AppVersion = '1.0.0',
     [string]$MainClass = 'erudition_program.MainApp',
-    [string]$RequiredJavaRelease = '26'
+    [string]$RequiredJavaRelease = '25'
 )
 
 Set-StrictMode -Version Latest
@@ -121,26 +121,32 @@ try {
         }
     }
 
-    function Get-JavaMajorVersionFromExe([string]$JavaExe) {
-        $out = & $JavaExe -version 2>&1 | Out-String
-        if ($out -match 'version\s+"(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<patch>\d+))?') {
-            $major = [int]$Matches['major']
-            if ($major -eq 1 -and $Matches['minor']) {
-                return [int]$Matches['minor']
-            }
-            return $major
+
+    function Get-JdkVersionFromPath([string]$Path) {
+        $leaf = Split-Path $Path -Leaf
+        if ($leaf -match '(?<ver>\d+(?:\.\d+){0,3})') {
+            $parts = $Matches['ver'].Split('.')
+            while ($parts.Count -lt 4) { $parts += '0' }
+
+            return New-Object System.Version (
+            [int]$parts[0],
+            [int]$parts[1],
+            [int]$parts[2],
+            [int]$parts[3]
+            )
         }
-        throw "Unable to parse Java version from: $out"
+
+        return $null
     }
 
-    function Test-JdkHome([string]$homie, [int]$RequiredMajor) {
+    function Test-JdkHome([string]$homie, [version]$RequiredVersion) {
         if (-not $homie) { return $false }
         $javaExe = Join-Path $homie 'bin\java.exe'
         $javacExe = Join-Path $homie 'bin\javac.exe'
         if (-not (Test-Path $javaExe) -or -not (Test-Path $javacExe)) { return $false }
 
         try {
-            return (Get-JavaMajorVersionFromExe $javaExe) -ge $RequiredMajor
+            return (Get-JavaVersionFromExe $javaExe) -ge $RequiredVersion
         } catch {
             return $false
         }
@@ -152,38 +158,64 @@ try {
             ${env:ProgramFiles(x86)}
         ) | Where-Object { $_ } | Select-Object -Unique
 
-        $patterns = @(
-            'Microsoft\jdk-*',
-            'Java\jdk-*',
-            'Eclipse Adoptium\jdk-*',
-            'Eclipse Temurin\jdk-*',
-            'Adoptium\jdk-*'
+        $candidateRoots = @(
+            'Java',
+            'Oracle',
+            'Microsoft',
+            'Eclipse Adoptium',
+            'Eclipse Temurin',
+            'Adoptium'
         )
 
-        foreach ($root in $roots) {
-            foreach ($pattern in $patterns) {
-                $path = Join-Path $root $pattern
-                Get-ChildItem -Path $path -Directory -ErrorAction SilentlyContinue
-            }
-        }
-    }
-
-    function Find-JdkHome {
         $found = @()
 
-        foreach ($candidate in Get-JdkHomeCandidates) {
-            $javaExe = Join-Path $candidate.FullName 'bin\java.exe'
-            $javacExe = Join-Path $candidate.FullName 'bin\javac.exe'
-            if ((Test-Path $javaExe) -and (Test-Path $javacExe)) {
+        foreach ($root in $roots) {
+            foreach ($sub in $candidateRoots) {
+                $base = Join-Path $root $sub
+
+                if (-not (Test-Path $base)) {
+                    continue
+                }
+
                 try {
-                    $major = Get-JavaMajorVersionFromExe $javaExe
-                    if ($major -ge 21) {
-                        $found += [pscustomobject]@{
-                            Home    = $candidate.FullName
-                            Version = $major
+                    $dirs = Get-ChildItem -Path $base -Directory -ErrorAction SilentlyContinue
+
+                    foreach ($dir in $dirs) {
+                        $javaExe  = Join-Path $dir.FullName 'bin\java.exe'
+                        $javacExe = Join-Path $dir.FullName 'bin\javac.exe'
+
+                        if ((Test-Path $javaExe) -and (Test-Path $javacExe)) {
+                            $found += $dir
                         }
                     }
                 } catch {
+                }
+            }
+        }
+
+        return $found | Sort-Object FullName -Unique
+    }
+
+    function Find-JdkHome([version]$MinimumVersion) {
+        $found = @()
+
+        foreach ($candidate in Get-JdkHomeCandidates) {
+            $javaExe  = Join-Path $candidate.FullName 'bin\java.exe'
+            $javacExe = Join-Path $candidate.FullName 'bin\javac.exe'
+
+            if (-not (Test-Path $javaExe) -or -not (Test-Path $javacExe)) {
+                continue
+            }
+
+            $version = Get-JdkVersionFromPath $candidate.FullName
+            if (-not $version) {
+                continue
+            }
+
+            if ($version -ge $MinimumVersion) {
+                $found += [pscustomobject]@{
+                    Home    = $candidate.FullName
+                    Version = $version
                 }
             }
         }
@@ -196,21 +228,32 @@ try {
     }
 
     function Ensure-JavaRuntime {
-        $required = [int]$RequiredJavaRelease
+        $requiredRelease = [int]$RequiredJavaRelease
+        $requiredVersion = [version]::new($requiredRelease, 0, 0, 0)
 
-        if ($JavaHome -and (Test-JdkHome $JavaHome $required)) {
+        if ($JavaHome -and (Test-JdkHome $JavaHome $requiredVersion)) {
             $env:JAVA_HOME = $JavaHome
             Add-UserPath (Join-Path $JavaHome 'bin')
             return $JavaHome
         }
 
-        $javaCmd = Get-Command java -ErrorAction SilentlyContinue
+        # Prefer installed JDK discovery first.
+        $jdkHome = Find-JdkHome $requiredVersion
+
+        if ($jdkHome) {
+            $env:JAVA_HOME = $jdkHome
+            Add-UserPath (Join-Path $jdkHome 'bin')
+            return $jdkHome
+        }
+
+        # Fallback to javac discovery from PATH.
         $javacCmd = Get-Command javac -ErrorAction SilentlyContinue
 
-        if ($javaCmd -and $javacCmd) {
+        if ($javacCmd) {
             try {
-                if ((Get-JavaMajorVersionFromExe $javaCmd.Source) -ge $required) {
-                    $homie = Split-Path -Parent (Split-Path -Parent $javaCmd.Source)
+                $homie = Split-Path -Parent (Split-Path -Parent $javacCmd.Source)
+
+                if (Test-JdkHome $homie $requiredVersion) {
                     $env:JAVA_HOME = $homie
                     Add-UserPath (Join-Path $homie 'bin')
                     return $homie
@@ -219,21 +262,23 @@ try {
             }
         }
 
-        $jdkHome = Find-JdkHome
-        if (-not $jdkHome) {
-            if ($SkipInstall) {
-                throw "JDK $RequiredJavaRelease+ not found and -SkipInstall was used."
-            }
-
-            Write-Host "Installing JDK $RequiredJavaRelease..."
-            $ok = Invoke-WingetInstall -Label "OpenJDK $RequiredJavaRelease" -Ids @("Microsoft.OpenJDK.$RequiredJavaRelease")
-            if (-not $ok) {
-                throw "Failed to install a JDK."
-            }
-
-            Start-Sleep -Seconds 2
-            $jdkHome = Find-JdkHome
+        if ($SkipInstall) {
+            throw "JDK $RequiredJavaRelease+ not found and -SkipInstall was used."
         }
+
+        Write-Host "Installing JDK $RequiredJavaRelease..."
+
+        $ok = Invoke-WingetInstall `
+        -Label "Oracle JDK $RequiredJavaRelease" `
+        -Ids @("Oracle.JDK.$RequiredJavaRelease")
+
+        if (-not $ok) {
+            throw "Failed to install a JDK."
+        }
+
+        Start-Sleep -Seconds 2
+
+        $jdkHome = Find-JdkHome $requiredVersion
 
         if (-not $jdkHome) {
             throw "JDK $RequiredJavaRelease+ not found after install attempt."
@@ -241,6 +286,7 @@ try {
 
         $env:JAVA_HOME = $jdkHome
         Add-UserPath (Join-Path $jdkHome 'bin')
+
         return $jdkHome
     }
     
@@ -406,13 +452,17 @@ try {
 
     function Ensure-WiX {
         if (Test-Command candle) { return $true }
+        if (Test-Command wix) { return $true }   # WiX v4
 
         if ($SkipInstall) {
             throw "WiX Toolset is missing and -SkipInstall was used."
         }
 
         Write-Host "Installing WiX Toolset..."
-        $ok = Invoke-WingetInstall -Label 'WiX Toolset' -Ids @('WiXToolset.WiX.Toolset')
+        $ok = Invoke-WingetInstall -Label 'WiX Toolset' -Ids @(
+            'WiXToolset.WiXToolset',
+            'WiXToolset.WiXCLI'
+        )
         if (-not $ok) {
             return $false
         }
@@ -428,7 +478,41 @@ try {
             Add-UserPath $dir
         }
 
-        return (Test-Command candle)
+        return (Test-Command candle) -or (Test-Command wix)
+    }
+
+    function Ensure-JavaFxSdk {
+        $fxVersion = "26.0.1"
+        $fxDir = Join-Path $Root "javafx-sdk-$fxVersion"
+        if (Test-Path $fxDir) {
+            Write-Host "JavaFX SDK $fxVersion already present at $fxDir."
+            return $fxDir
+        }
+
+        Write-Host "Downloading JavaFX SDK $fxVersion..."
+        $zipUrl = "https://download2.gluonhq.com/openjfx/$fxVersion/openjfx-${fxVersion}_windows-x64_bin-sdk.zip"
+        $zipPath = Join-Path $Root "openjfx-$fxVersion.zip"
+
+        try {
+            Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+            Write-Host "Extracting JavaFX SDK..."
+            Expand-Archive -Path $zipPath -DestinationPath $Root -Force
+            
+            $extracted = Join-Path $Root "javafx-sdk-$fxVersion"
+            if (-not (Test-Path $extracted)) {
+                $unzippedFolder = Get-ChildItem -Path $Root -Directory -Filter "javafx-sdk-*" | Select-Object -First 1
+                if ($unzippedFolder) {
+                    Rename-Item -Path $unzippedFolder.FullName -NewName "javafx-sdk-$fxVersion"
+                }
+            }
+            Write-Host "JavaFX SDK $fxVersion successfully downloaded and extracted."
+        }
+        finally {
+            if (Test-Path $zipPath) {
+                Remove-Item $zipPath -Force
+            }
+        }
+        return $fxDir
     }
 
     function Ensure-Directory([string]$Path) {
@@ -477,13 +561,18 @@ try {
         Remove-Item $FxModuleDir -Recurse -Force -ErrorAction SilentlyContinue
         Ensure-Directory $FxModuleDir
 
-        $javaFxJars = Get-ChildItem -Path $StagingDir -File -Filter 'javafx-*.jar' -ErrorAction SilentlyContinue
-        if (-not $javaFxJars -or $javaFxJars.Count -eq 0) {
-            throw "No JavaFX jars were found in $StagingDir."
-        }
-
-        foreach ($jar in $javaFxJars) {
-            Copy-Item $jar.FullName -Destination $FxModuleDir -Force
+        $localSdkLib = Join-Path $Root "javafx-sdk-26.0.1\lib"
+        if (Test-Path $localSdkLib) {
+            Write-Host "Using manually downloaded JavaFX SDK components..."
+            Copy-Item (Join-Path $localSdkLib "javafx-*.jar") -Destination $FxModuleDir -Force
+        } else {
+            $javaFxJars = Get-ChildItem -Path $StagingDir -File -Filter 'javafx-*.jar' -ErrorAction SilentlyContinue
+            if (-not $javaFxJars -or $javaFxJars.Count -eq 0) {
+                throw "No JavaFX jars were found in $StagingDir."
+            }
+            foreach ($jar in $javaFxJars) {
+                Copy-Item $jar.FullName -Destination $FxModuleDir -Force
+            }
         }
 
         $paths = Get-ChildItem -Path $FxModuleDir -File -Filter '*.jar' |
@@ -555,6 +644,7 @@ try {
     Ensure-CMake | Out-Null
     $vsPath = Ensure-VSBuildTools
     Ensure-Ollama
+    Ensure-JavaFxSdk
 
     if ($DepsOnly) {
         Write-Host ""

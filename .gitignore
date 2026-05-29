@@ -284,5 +284,7 @@ Test_CodeTextPrinter.sh
 
 *.env
 
+javafx*
+
 !scripts/set-jfx-env.ps1
 !build.ps1

@@ -8,18 +8,13 @@
           "mainClass": "erudition_program.MainApp",
           "projectName": "erudition_ai",
           "cwd": "${workspaceFolder}",
-          "preLaunchTask": "Set JavaFX env",
-          "envFile": "${workspaceFolder}/.jfx.env",
           "vmArgs": [
-              "--module-path", "${env:JFX_MODULE_PATH}",
+              "--module-path", "${workspaceFolder}/javafx-sdk-26.0.1/lib",
               "--add-modules", "javafx.controls",
               "--enable-native-access=javafx.graphics",
               "--enable-native-access=ALL-UNNAMED",
               "-Dnative.dir=${workspaceFolder}/native/build/Release"
           ],
-          "classPaths": [
-              "${workspaceFolder}/target/classes"
-          ]
       }
   ]
 }
