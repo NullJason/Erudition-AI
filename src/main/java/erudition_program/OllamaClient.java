@@ -27,6 +27,39 @@ public final class OllamaClient {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    public boolean isModelDownloaded(String model) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder().uri(TAGS_URI).timeout(Duration.ofSeconds(3)).GET().build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            JsonNode root = mapper.readTree(response.body());
+            for (JsonNode modelNode : root.path("models")) {
+                if (modelNode.path("name").asText("").equals(model) || modelNode.path("name").asText("").equals(model + ":latest")) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String getModelCapabilities(String model) {
+        try {
+            Map<String, String> body = Map.of("model", model);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://127.0.0.1:11434/api/show"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body)))
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() == 200) {
+                JsonNode root = mapper.readTree(response.body());
+                return root.path("details").toPrettyString() + "\nSystem:\n" + root.path("system").asText("N/A");
+            }
+        } catch (Exception ignored) {}
+        return "Capabilities data unavailable via API. Model may require installation first.";
+    }
+
     public boolean isServerAvailable() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
